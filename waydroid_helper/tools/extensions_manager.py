@@ -12,18 +12,40 @@ from collections.abc import Coroutine, Iterable
 from enum import IntEnum
 from gettext import gettext as _
 from typing import Any, TypedDict, TypeGuard
+from dataclasses import dataclass
 
 import aiofiles
 import httpx
 import yaml
 from gi.repository import GLib, GObject
 
+from waydroid_helper.util.state_waiter import wait_for_state
 from waydroid_helper.util.abx_reader import AbxReader
 from waydroid_helper.util.arch import host
 from waydroid_helper.util.log import logger
 from waydroid_helper.util.subprocess_manager import SubprocessManager
 from waydroid_helper.util.task import Task
 from waydroid_helper.waydroid import Waydroid, WaydroidState
+
+
+@dataclass
+class ValidationResult:
+    """验证结果类，包含验证状态和详细信息"""
+    is_valid: bool
+    error_type: str = ""
+    error_message: str = ""
+    
+    @classmethod
+    def success(cls) -> "ValidationResult":
+        return cls(is_valid=True)
+    
+    @classmethod
+    def failure(cls, error_type: str, error_message: str) -> "ValidationResult":
+        return cls(
+            is_valid=False,
+            error_type=error_type,
+            error_message=error_message
+        )
 
 
 class ExtensionManagerState(IntEnum):
@@ -36,6 +58,7 @@ class PackageInfo(TypedDict):
     description: str
     version: str
     path: str
+    arch: list[str]
     android_version: str
     files: list[str]
     provides: list[str]
@@ -279,7 +302,51 @@ class PackageManager(GObject.Object):
                 ):
                     conflicts.add(installed_package["name"])
         return conflicts
-
+    
+    def check_arch(self, name: str, version: str, package_info: PackageInfo|None=None) -> ValidationResult:
+        """检查架构兼容性"""
+        if package_info is None:
+            package_info = self.get_package_info(name, version)
+        if package_info is None:
+            return ValidationResult.failure(
+                "package_not_found",
+                f"Package {name}-{version} not found"
+            )
+        
+        if "arch" in package_info.keys() and self.arch not in package_info["arch"]:
+            supported_arch = ", ".join(package_info["arch"])
+            return ValidationResult.failure(
+                "arch_mismatch",
+                _("Hardware architecture mismatch. Supported: {0}, Current: {1}").format(
+                    supported_arch, self.arch
+                )
+            )
+        
+        return ValidationResult.success()
+    
+    def check_android_version(self, name: str, version: str, package_info: PackageInfo|None=None) -> ValidationResult:
+        """检查 Android 版本兼容性"""
+        if package_info is None:
+            package_info = self.get_package_info(name, version)
+        if package_info is None:
+            return ValidationResult.failure(
+                "package_not_found",
+                f"Package {name}-{version} not found"
+            )
+        
+        if "android_version" in package_info.keys():
+            current_android_version = self.waydroid.get_android_version()
+            required_android_version = package_info["android_version"]
+            if current_android_version != required_android_version:
+                return ValidationResult.failure(
+                    "android_version_mismatch",
+                    _(
+                        "Your Android version is not supported. Required version: {0}. Current version: {1}."
+                    ).format(required_android_version, current_android_version)
+                )
+        
+        return ValidationResult.success()
+    
     def list_installed(self):
         return self.installed_packages
 
@@ -466,6 +533,7 @@ class PackageManager(GObject.Object):
 
     async def install_package(self, name: str, version: str):
         async with self._package_lock:
+            logger.info(f"Starting package installation: {name}-{version}")
             self.emit("installation-started", name, version)
             should_start_session = self.waydroid.state == WaydroidState.RUNNING
             package_info = self.get_package_info(name, version)
@@ -473,19 +541,9 @@ class PackageManager(GObject.Object):
                 logger.error(f"Package {name} not found.")
                 return
 
-            # 检查架构
-            if "arch" in package_info.keys() and self.arch not in package_info["arch"]:
-                raise ValueError("Hardware architecture mismatch")
+            # self.check_arch(package_info)
 
-            if "android_version" in package_info.keys():
-                current_android_version = self.waydroid.get_android_version()
-                required_android_version = package_info["android_version"]
-                if current_android_version != required_android_version:
-                    raise ValueError(
-                        _(
-                            "Your Android version is not supported. Required version: {0}. Current version: {1}."
-                        ).format(required_android_version, current_android_version)
-                    )
+            # self.check_android_version(package_info)
 
             # 检查依赖
             # missing_dependencies = self.check_dependencies(package_info)
@@ -500,7 +558,9 @@ class PackageManager(GObject.Object):
             #             f"Package {package_info['name']} is missing dependencies: {', '.join(missing_dependencies)}."
             #         )
             #         return
+            logger.info(f"Starting package file download: {name}-{version}")
             await self.download(package_info)
+            logger.info(f"Package file download completed: {name}-{version}")
 
             # 调用 installer
             package_name = package_info["name"]
@@ -508,6 +568,7 @@ class PackageManager(GObject.Object):
             startdir = os.path.join(self.cache_dir, "extensions", package_name)
             pkgdir = os.path.join(startdir, "pkg")
             package = f"{startdir}/{package_name}-{package_version}.tar.gz"
+            logger.info(f"Starting package build: {package_name}-{package_version}")
             await self._subprocess.run(
                 f'{os.environ["WAYDROID_CLI_PATH"]} call_package "{startdir}" "{package_name}" "{package_version}"',
                 env={
@@ -518,12 +579,18 @@ class PackageManager(GObject.Object):
                 },
                 shell=False,
             )
+            logger.info(f"Package build completed: {package_name}-{package_version}")
             if "install" in package_info.keys():
+                logger.info(f"Executing pre-install operations: {package_name}")
                 await self.pre_install(package_info)
+                logger.info(f"Pre-install operations completed: {package_name}")
+            
+            logger.info(f"Starting package installation to system: {package_name}")
             await self._subprocess.run(
                 f'pkexec {os.environ["WAYDROID_CLI_PATH"]} install "{package}"',
                 shell=False,
             )
+            logger.info(f"Package installation to system completed: {package_name}")
 
             installed_files = self.get_all_files_relative(pkgdir)
 
@@ -533,6 +600,7 @@ class PackageManager(GObject.Object):
             package_info.update({"installed_files": installed_files})
             # 应用 prop
             if os.path.exists(os.path.join(startdir, "prop.json")):
+                logger.info(f"Applying package property configuration: {package_name}")
                 async with aiofiles.open(
                     os.path.join(startdir, "prop.json"), mode="r"
                 ) as f:
@@ -540,7 +608,11 @@ class PackageManager(GObject.Object):
                     props: dict[str, Any] = json.loads(content)
                     success = await self.waydroid.set_extension_props(props)
                     if success:
+                        logger.info(f"Package properties set successfully, starting system upgrade: {package_name}")
                         await self.waydroid.upgrade(offline=True)
+                        logger.info(f"System upgrade completed: {package_name}")
+                    else:
+                        logger.warning(f"Failed to set package properties: {package_name}")
 
                 package_info["props"] = list(props.keys())
 
@@ -559,18 +631,25 @@ class PackageManager(GObject.Object):
 
             # post_install
             if "install" in package_info.keys():
+                logger.info(f"Executing post-install operations: {package_name}")
                 await self.post_install(package_info)
+                logger.info(f"Post-install operations completed: {package_name}")
 
+            logger.info(f"Saving package information locally: {package_name}")
             os.makedirs(local_dir, exist_ok=True)
             async with aiofiles.open(desc_path, mode="w") as f:
                 content = json.dumps(package_info)
                 await f.write(content)
 
             self.installed_packages[package_name] = package_info
-            logger.info(f"Package {name} installed successfully.")
+            logger.info(f"Package {name} installation completed successfully")
+            
+            logger.info(f"Restarting Waydroid session to apply changes")
             await self.waydroid.stop_session()
             if should_start_session:
                 await self.waydroid.start_session()
+            logger.info(f"Waydroid session restart completed")
+            
             self.emit("installation-completed", name, version)
 
     async def execute_post_operations(self, info: PackageInfo, operation_key: str):
@@ -669,23 +748,17 @@ class PackageManager(GObject.Object):
             elif func_name == "rm_apk":
                 apks = " ".join(['"' + apk + '"' for apk in args])
 
-                async def wait_for_running():
-                    while True:
-                        await self.waydroid.refresh_persist_prop("boot_completed")
-                        if (
-                            self.waydroid.state == WaydroidState.RUNNING
-                            and self.waydroid.persist_props.get_property(
-                                "boot_completed"
-                            )
-                        ):
-                            return
-                        await asyncio.sleep(0.5)
-                if self.waydroid.state == WaydroidState.STOPPED:
-                    self._task.create_task(self.waydroid.start_session())
-                try:
-                    await asyncio.wait_for(wait_for_running(), timeout=30)
-                except asyncio.TimeoutError:
-                    logger.error("Timeout waiting for waydroid to start")
+                await self.waydroid.start_session()
+
+                success = await wait_for_state(
+                    self.waydroid._controller.property_model,
+                    target_state=True,
+                    state_property="boot-completed",
+                    timeout=30,
+                )
+
+                if not success:
+                    logger.error("Timeout waiting for waydroid to boot")
 
                 commands = [
                     command_map[func_name].format(
@@ -725,40 +798,62 @@ class PackageManager(GObject.Object):
         """移除包"""
         async with self._package_lock:
             if package_name in self.installed_packages:
+                logger.info(f"Starting package uninstallation: {package_name}")
                 should_start_session = self.waydroid.state == WaydroidState.RUNNING
                 version = self.installed_packages[package_name]["version"]
                 self.emit("uninstallation-started", package_name, version)
+                
+                logger.info(f"Starting system overlay file removal: {package_name}")
                 await self._subprocess.run(
                     f'pkexec {os.environ["WAYDROID_CLI_PATH"]} rm_overlay {" ".join(self.installed_packages[package_name]["installed_files"])}',
                     shell=False,
                 )
+                logger.info(f"System overlay file removal completed: {package_name}")
                 # await self._subprocess.run(
                 #     f"pkexec waydroid-cli rm {os.path.join(self.storage_dir, 'local', package_name)}"
                 # )
                 if "props" in self.installed_packages[package_name].keys():
+                    logger.info(f"Starting package property configuration removal: {package_name}")
                     success = await self.waydroid.remove_extension_props(
                         self.installed_packages[package_name]["props"]
                     )
                     if success:
+                        logger.info(f"Package properties removed successfully, starting system upgrade: {package_name}")
                         _ = await self.waydroid.upgrade(offline=True)
+                        logger.info(f"System upgrade completed: {package_name}")
+                    else:
+                        logger.warning(f"Failed to remove package properties: {package_name}")
+                        
                 if "install" in self.installed_packages[package_name].keys():
+                    logger.info(f"Executing post-removal operations: {package_name}")
                     await self.post_remove(self.installed_packages[package_name])
+                    logger.info(f"Post-removal operations completed: {package_name}")
+                    
+                logger.info(f"Starting local package file deletion: {package_name}")
                 await self._subprocess.run(
                     f"rm -rf {os.path.join(self.storage_dir, 'local', package_name)}",
                     shell=False,
                 )
+                logger.info(f"Local package file deletion completed: {package_name}")
                 # await asyncio.gather(coro1, coro2, coro3)
 
                 del self.installed_packages[package_name]
-                logger.info(f"Package {package_name} removed successfully.")
+                logger.info(f"Package {package_name} uninstallation completed successfully")
+                
+                logger.info(f"Restarting Waydroid session to apply changes")
                 await self.waydroid.stop_session()
                 if should_start_session:
                     await self.waydroid.start_session()
+                logger.info(f"Waydroid session restart completed")
+                
                 self.emit("uninstallation-completed", package_name, version)
             else:
-                logger.warning(f"Package {package_name} is not installed.")
+                logger.warning(f"Package {package_name} is not installed, cannot uninstall")
 
     async def remove_packages(self, package_names: Iterable[str]):
-        for pkg in package_names:
-            logger.info(f"remove {pkg}")
+        package_list = list(package_names)
+        logger.info(f"Starting batch package uninstallation, {len(package_list)} packages")
+        for pkg in package_list:
+            logger.info(f"Preparing to uninstall package: {pkg}")
             await self.remove_package(pkg)
+        logger.info("Batch package uninstallation completed")

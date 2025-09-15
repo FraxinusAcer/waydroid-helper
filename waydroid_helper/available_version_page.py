@@ -19,7 +19,7 @@ from waydroid_helper.tools import PackageManager
 from waydroid_helper.util import Task, logger
 
 if TYPE_CHECKING:
-    from waydroid_helper.tools.extensions_manager import PackageInfo
+    from waydroid_helper.tools.extensions_manager import PackageInfo, ValidationResult
 
 
 class AvailableRow(Adw.ActionRow):
@@ -33,6 +33,9 @@ class AvailableRow(Adw.ActionRow):
         self.set_title(title=f"{name}-{version}")
 
         button_size = 36
+
+        # We'll manage subtitle text directly instead of widgets
+        # for better integration with ActionRow's native subtitle area
 
         self.delete_button: Gtk.Button = Gtk.Button.new()
         self.delete_button.set_valign(align=Gtk.Align.CENTER)
@@ -71,6 +74,35 @@ class AvailableRow(Adw.ActionRow):
             self.install_button.hide()
             self.delete_button.hide()
             self.spinner.show()
+
+    def set_validation_errors(self, arch_error: bool = False, android_version_error: bool = False):
+        """Set validation errors as colored subtitle text and disable row if needed"""
+        subtitle_parts = []
+        
+        if arch_error:
+            # Red colored text for architecture error
+            subtitle_parts.append('<span color="#e01b24" size="small" weight="bold">⚠️ ' + _("Incompatible Arch") + '</span>')
+        if android_version_error:
+            # Orange colored text for android version error  
+            subtitle_parts.append('<span color="#f57c00" size="small" weight="bold">⚠️ ' + _("Incompatible Android") + '</span>')
+            
+        if subtitle_parts:
+            # Join multiple errors and set as subtitle with markup
+            subtitle_markup = ' • '.join(subtitle_parts)
+            self.set_subtitle(subtitle_markup)
+            self.set_use_markup(True)  # Enable markup parsing for subtitle
+            
+            # Disable the entire row if there are validation errors
+            self.set_sensitive(False)
+            self.install_button.set_sensitive(False)
+            self.delete_button.set_sensitive(False)
+        else:
+            # Clear subtitle if no errors
+            self.set_subtitle("")
+            self.set_use_markup(False)
+            self.set_sensitive(True)
+            self.install_button.set_sensitive(True)
+            self.delete_button.set_sensitive(True)
 
 
 # class CircularProgressBar(Gtk.DrawingArea):
@@ -174,6 +206,17 @@ class AvailableVersionPage(NavigationPage):
             adw_action_row = AvailableRow(
                 version["name"], version["version"], installed
             )
+            
+            # Check validation errors
+            arch_validation = self.extension_manager.check_arch(version["name"], version["version"])
+            android_validation = self.extension_manager.check_android_version(version["name"], version["version"])
+            
+            # Set validation error labels and disable if needed
+            adw_action_row.set_validation_errors(
+                arch_error=not arch_validation.is_valid,
+                android_version_error=not android_validation.is_valid
+            )
+            
             adw_action_row.delete_button.connect(
                 "clicked",
                 partial(
@@ -264,6 +307,20 @@ class AvailableVersionPage(NavigationPage):
 
         return await future
 
+    async def show_validation_error(self, validation_result: "ValidationResult") -> bool:
+        if validation_result.is_valid:
+            return True
+            
+        dialog = MessageDialog(
+            heading=_("Installation Validation Failed"),
+            body=validation_result.error_message,
+            parent=self.get_root(),
+        )
+        dialog.add_response(Gtk.ResponseType.OK, _("OK"))
+        dialog.present()
+        return False
+    
+
     async def __install(self, name: str, version: str) -> None:
         installation_successful = False
         try:
@@ -272,6 +329,14 @@ class AvailableVersionPage(NavigationPage):
                 AvailableRow.State.INSTALLING
             )
             async with self.lock:
+                arch_check = self.extension_manager.check_arch(name, version)
+                if not await self.show_validation_error(arch_check):
+                    return
+                
+                android_version_check = self.extension_manager.check_android_version(name, version)
+                if not await self.show_validation_error(android_version_check):
+                    return
+                
                 conflicts = self.extension_manager.check_conflicts(
                     name=name, version=version
                 )
