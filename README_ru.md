@@ -1,6 +1,6 @@
 # Waydroid Helper
 
-**Языки**: [English](README.md) | [中文](README_zh.md) | [Русский](README_ru.md)
+**Язык**: [English](README.md) | [中文](README_zh.md) | [Русский](README_ru.md)
 
 Waydroid Helper - это графическое приложение, написанное на Python с использованием PyGObject. Оно предоставляет удобный способ настройки Waydroid и установки расширений, включая Magisk и трансляцию ARM.
 
@@ -11,7 +11,7 @@ Waydroid Helper - это графическое приложение, напис
   - Множество виджетов управления (кнопки, панель управления направлением, элементы управления прицеливанием, макросы)
   - Настраиваемые привязки клавиш и их расположение
   - Поддержка сложных игровых сценариев (FPS, MOBA)
-  - Подробные инструкции см. в [Руководстве по привязке клавиш](docs/KEY_MAPPING.md)
+  - Подробные инструкции см. в [Руководстве по привязке клавиш](docs/KEY_MAPPING_ru.md)
 - Установите расширения для Waydroid
   - [Magisk](https://github.com/HuskyDG/magisk-files/)
   - [libhoudini](https://github.com/supremegamers/vendor_intel_proprietary_houdini)
@@ -91,7 +91,7 @@ sudo apt install waydroid-helper
 
 ### Установка Релизных сборок
 
-1. Перейдите на страницу [releases](https://github.com/waydroid-helper/waydroid-helper/releases)
+1. Перейдите на страницу [релизов](https://github.com/waydroid-helper/waydroid-helper/releases)
 2. Загрузите соответствующий пакет для вашего дистрибутива
 3. Установите пакет
 

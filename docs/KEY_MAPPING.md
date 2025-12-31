@@ -29,10 +29,10 @@ The key mapping interface operates in two distinct modes:
 <img src="../assets/img/KEY_MAPPING/image-20250802234629279.png" alt="image-20250802234629279" style="zoom:67%;" />
 
 1. **Ensure you're in Edit Mode** (this is the default when opening)
-2. **Right-click** on an empty area to open the widget selection panel
+2. **Secondary-click** on an empty area to open the widget selection panel
 3. **Select a widget type** from the menu
 4. **Position the widget** by dragging it to the desired location on your game interface
-5. **Resize if needed** by dragging the resize handles when the widget is selected
+5. ***Resize if needed** by dragging the resize handles when the widget is selected
 
 ### Configuring Key Bindings
 
@@ -43,7 +43,7 @@ The key mapping interface operates in two distinct modes:
 #### Supported Key Types
 
 - **Keyboard keys**: Letters, numbers, function keys, modifiers (Ctrl, Alt, Shift)
-- **Mouse buttons**: Left, Right, Middle
+- **Mouse buttons**: Primary, Secondary, Middle
 - **Key combinations**: Multiple keys pressed together (e.g., Ctrl+A, Alt+Tab)
 
 ### Advanced Widget Configuration
@@ -99,7 +99,7 @@ Automated rapid clicking
 It is commonly used in FPS games. Adding it to the game can drag the position of the viewing angle, and cooperate with the fire button to realize the use of the mouse to move the viewing angle and aim and shoot. After adding, please drag the rectangular box to adjust the effective range of the viewing angle rotation, which needs to correspond to the effective range that can trigger the operation viewing angle rotation in the game.
 
 - **Use Case**: Camera control and aiming
-- **Special Features**: 
+- **Special Features**:
   - Works with Fire button for complete FPS control
 - **Configuration**: Sensitivity
 
@@ -111,7 +111,7 @@ Commonly used in FPS games, add a button to the position of the attack/fire butt
 
 - **Use Case**: FPS games
 - **Default Key**: Left Mouse Button
-- **Special Feature**: 
+- **Special Feature**:
   - Automatically activates when Aim widget is triggered
   - The key binding cannot be modified
 
@@ -123,12 +123,10 @@ Drag and position it on the virtual d-pad to control movement direction. After a
 
 - **Use Case**: Character movement in games
 - **Default Keys**: W (up), A (left), S (down), D (right)
-- **Configuration**: 
+- **Configuration**:
   - Operation Modes:
     - **Slide control:** Simulates sliding from the center of the d-pad to trigger the movement
     - **Click control**
-
-
 
 ### 6. Skill Casting
 
@@ -141,14 +139,11 @@ Commonly used when using the characters' skills, click and cooperate with the mo
 - **Configuration**
   - **Casting radius:** Fine-tune according to the casting range
   - **Casting timing**
+
     - On Release:  press and hold the button, release the button to cast
     - Immediate: press the button to cast immediately
     - Manual: Click once to simulate holding down the casting button, then click the button again to cast
-
   - **Cancel casting:** When enabled, a "cancel casting" button will be generated, drag the button to the cancel casting position. While casting a spell, hold down the cancel cast button to cancel the cast.
-
-
-
 
 ### 7. Right Click to Walk
 
@@ -157,7 +152,7 @@ Commonly used when using the characters' skills, click and cooperate with the mo
 Move it to the game's virtual joystick, use the mouse to control movement direction, and right-click on the screen to move to the specified location.
 
 - **Use Case**: MOBA games
-- **Default Keys**:  Right  Mouse Button
+- **Default Keys**: Secondary Mouse Button
 
 ### 8. Macro Button
 
@@ -185,7 +180,7 @@ release 0,0
 
 #### Single click Command
 
-**click x1,y1 x2,y2...:** Click on coordinate points. Supports single-location clicks or simultaneous multi-touch by clicking multiple locations at once. Supports coordinate variables such as `mouse`. 
+**click x1,y1 x2,y2...:** Click on coordinate points. Supports single-location clicks or simultaneous multi-touch by clicking multiple locations at once. Supports coordinate variables such as `mouse`.
 
 **Note:** For single click commands, the duration from press to release is fixed.
 
@@ -193,7 +188,7 @@ Example:
 
 ```
 # Simultaneously click coordinates (0,0), (1,1), and current mouse position
-## Wait 100ms, then click (2,2)
+# Wait 100ms, then click (2,2)
 click 0,0 1,1 mouse
 sleep 100
 click 2,2
@@ -275,8 +270,6 @@ Allows real-time switching of d-pad radius. In games like Sky: Children of the L
 
 **swipehold_radius_switch x:** Toggles the d-pad radius between x times the original size and 1x (normal size).
 
-
-
 Example:
 
 ```
@@ -290,4 +283,3 @@ swipehold_radius 1
 # Toggle between walking and running with each press
 swipehold_radius_switch 0.5
 ```
-

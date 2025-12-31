@@ -5,8 +5,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: unnamed project\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-11-19 18:38+0800\n"
-"PO-Revision-Date: 2025-09-11 18:05+0300\n"
+"POT-Creation-Date: 2025-09-09 00:51+0800\n"
+"PO-Revision-Date: 2025-09-15 19:43+0300\n"
 "Last-Translator: Fraxinus Acer\n"
 "Language-Team: Russian\n"
 "Language: ru\n"
@@ -752,7 +752,7 @@ msgstr ""
 #: waydroid_helper/controller/widgets/components/directional_pad.py:82
 msgctxt "Controller Widgets"
 msgid "Directional Pad"
-msgstr "Ограничивающая направляющая"
+msgstr "Геймпад"
 
 #: waydroid_helper/controller/widgets/components/directional_pad.py:58
 msgctxt "Controller Widgets"
@@ -762,10 +762,10 @@ msgid ""
 "make sure the blue frame of the directional pad matches the size of the game "
 "wheel."
 msgstr ""
-"Перетащите и поместите ее на игровое колесо перемещения, чтобы управлять "
+"Перетащите и поместите ее на игровую крестовину перемещения, чтобы управлять "
 "направлением движения. После назначения клавиш перетащите пунктирную рамку, "
 "чтобы изменить размер кнопки; убедитесь, что синяя рамка панели управления "
-"соответствует размеру игрового колеса."
+"соответствует размеру колеса в игре."
 
 #: waydroid_helper/controller/widgets/components/directional_pad.py:160
 #: waydroid_helper/controller/widgets/components/repeated_click.py:524
@@ -776,17 +776,17 @@ msgstr "Метод управления"
 #: waydroid_helper/controller/widgets/components/directional_pad.py:163
 msgctxt "Controller Widgets"
 msgid "Slide control"
-msgstr "Контроль движением"
+msgstr "Управление движениями"
 
 #: waydroid_helper/controller/widgets/components/directional_pad.py:164
 msgctxt "Controller Widgets"
 msgid "Click control"
-msgstr "Контроль кликом"
+msgstr "Управление нажатиями"
 
 #: waydroid_helper/controller/widgets/components/directional_pad.py:167
 msgctxt "Controller Widgets"
 msgid "Adjusts the operating method of the directional pad"
-msgstr "Настраивает способ работы направляющей панели"
+msgstr "Настраивает способ работы крестовины"
 
 #: waydroid_helper/controller/widgets/components/fire.py:22
 #: waydroid_helper/controller/widgets/components/fire.py:46
@@ -802,30 +802,10 @@ msgid ""
 "Note: Only supports left mouse button, cannot be modified, and won't work "
 "alone."
 msgstr ""
-"Обычно используется в шутерах от первого лица, добавляет кнопку \"Атака\" / "
-"\"Огонь\", для нажатия используется левая кнопка мыши и использоваться "
-"вместе с кнопкой \"Прицелиться\". Примечание: Поддерживается только левая "
-"кнопка мыши, ее нельзя изменить, и она не будет работать сама по себе."
-
-#: waydroid_helper/controller/widgets/components/fire.py:77
-msgctxt "Controller Widgets"
-msgid "Mouse Button"
-msgstr ""
-
-#: waydroid_helper/controller/widgets/components/fire.py:80
-msgctxt "Controller Widgets"
-msgid "Left Button"
-msgstr ""
-
-#: waydroid_helper/controller/widgets/components/fire.py:81
-msgctxt "Controller Widgets"
-msgid "Right Button"
-msgstr ""
-
-#: waydroid_helper/controller/widgets/components/fire.py:85
-msgctxt "Controller Widgets"
-msgid "Choose which mouse button to simulate for firing"
-msgstr ""
+"Обычно используется в шутерах от первого лица, добавляет кнопку \"Атака\", "
+"для нажатия используется левая кнопка мыши и использоваться вместе с кнопкой "
+"\"Прицелиться\". Примечание: Поддерживается только левая кнопка мыши, ее "
+"нельзя изменить, и она не будет работать сама по себе."
 
 #. 组件元数据
 #: waydroid_helper/controller/widgets/components/macro.py:681
@@ -885,12 +865,12 @@ msgstr "Имитируйте повторяющиеся операции щел�
 #: waydroid_helper/controller/widgets/components/repeated_click.py:531
 msgctxt "Controller Widgets"
 msgid "Long-press combo"
-msgstr "Комбо долгого удержания"
+msgstr "Комбо при удержании"
 
 #: waydroid_helper/controller/widgets/components/repeated_click.py:534
 msgctxt "Controller Widgets"
 msgid "Click after button"
-msgstr "Клик после клавиши"
+msgstr "Клики после нажатия"
 
 #: waydroid_helper/controller/widgets/components/repeated_click.py:540
 msgctxt "Controller Widgets"
@@ -1013,8 +993,8 @@ msgid ""
 "(auto-release after moving), or Manual (sticky mode)"
 msgstr ""
 "Определяет, когда завершается использование навыка: при снятии (по "
-"умолчанию), немедленно (автоматическое снятие после перемещения) или вручную "
-"(режим ожидания)."
+"умолчанию), немедленно (автозапуск после нажатия) или вручную (режим "
+"залипания)."
 
 #: data/ui/GeneralPage.ui:68
 msgid "Start"
