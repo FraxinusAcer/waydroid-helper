@@ -13,7 +13,8 @@ Waydroid Helper is a graphical user interface application written in Python usin
   - Support for complex gaming scenarios (FPS, MOBA)
   - See the [Key Mapping Guide](docs/KEY_MAPPING.md) for detailed instructions
 - Install extensions for Waydroid
-  - [Magisk](https://github.com/HuskyDG/magisk-files/)
+  - [Magisk](https://github.com/topjohnwu/Magisk)
+  - ~~[Magisk](https://github.com/HuskyDG/magisk-files/)~~
   - [libhoudini](https://github.com/supremegamers/vendor_intel_proprietary_houdini)
   - [libndk](https://github.com/supremegamers/vendor_google_proprietary_ndk_translation-prebuilt)
   - [OpenGapps](https://sourceforge.net/projects/opengapps/)
@@ -57,6 +58,16 @@ sudo apt install waydroid-helper
 ```
 echo 'deb http://download.opensuse.org/repositories/home:/CuteNeko:/waydroid-helper/Debian_12/ /' | sudo tee /etc/apt/sources.list.d/home:CuteNeko:waydroid-helper.list
 curl -fsSL https://download.opensuse.org/repositories/home:CuteNeko:waydroid-helper/Debian_12/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_CuteNeko_waydroid-helper.gpg > /dev/null
+echo -e "Package: python3-pywayland\nPin: origin \"download.opensuse.org\"\nPin-Priority: 1001" | sudo tee /etc/apt/preferences.d/99-pywayland.pref
+sudo apt update
+sudo apt install waydroid-helper
+```
+
+##### For **Debian 13** run the following:
+
+```
+echo 'deb http://download.opensuse.org/repositories/home:/CuteNeko:/waydroid-helper/Debian_13/ /' | sudo tee /etc/apt/sources.list.d/home:CuteNeko:waydroid-helper.list
+curl -fsSL https://download.opensuse.org/repositories/home:CuteNeko:waydroid-helper/Debian_13/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/home_CuteNeko_waydroid-helper.gpg > /dev/null
 echo -e "Package: python3-pywayland\nPin: origin \"download.opensuse.org\"\nPin-Priority: 1001" | sudo tee /etc/apt/preferences.d/99-pywayland.pref
 sudo apt update
 sudo apt install waydroid-helper
@@ -201,11 +212,24 @@ usr
     │       └── id.waydro.Mount.service
 
 ```
-### Waydroid won't start after installing microg or gapps
+### Waydroid fails to start after installing MicroG or GApps
 If you encounter issues with waydroid not starting after installing microg or gapps, try the following solutions:
 
 1. **Ensure vanilla image usage**: Confirm that you are using a vanilla image instead of a gapps version
 2. **Complete data reset**: If the above methods still don't resolve the issue, completely remove the `~/.local/share/waydroid/data` directory and re-run `sudo waydroid init -f`. **Note**: This operation will delete all waydroid data, so please ensure you have backed up any important information.
+
+### ZygiskNext / ReZygisk not working
+
+In some cases, ZygiskNext or ReZygisk may fail to function inside Waydroid.
+
+These modules rely on SuperCall, a kernel-side IOCTL interface installed through a reboot kprobe hook. Waydroid's default seccomp profile blocks the reboot syscall, which prevents the SuperCall interface from being initialized.
+
+Remove the reboot rule from the Waydroid seccomp configuration and then apply the change:
+
+```
+sudo sed -i '/reboot/d' /usr/lib/waydroid/data/configs/waydroid.seccomp
+sudo waydroid upgrade -o
+```
 
 ## Credits
 

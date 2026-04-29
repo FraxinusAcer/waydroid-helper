@@ -9,6 +9,8 @@ from gettext import gettext as _
 import multiprocessing
 from typing import cast
 import asyncio
+import shutil
+import shlex
 
 import gi
 
@@ -565,11 +567,18 @@ class InstanceDetailPage(NavigationPage):
                 refresh_rate = self.config.cage.refresh_rate
                 hide_titlebar_flag = "--hide-titlebar" if self.config.cage.hide_titlebar else ""
                 confine_pointer_flag = "--confine-pointer" if self.config.cage.confine_pointer else ""
-                await sm.run(
+                
+                handle = await sm.start(
                     f"{self.config.cage.executable_path} -W {width} -H {height} -w {logic_width} -h {logic_height} -S {socket_name} --scale {scale} --refresh-rate {refresh_rate} {hide_titlebar_flag} {confine_pointer_flag} -- waydroid show-full-ui",
                     flag=True,
-                    wait=False,
+                    shell=False,
                 )
+                try:
+                    await handle.verify_started(timeout=1.0)
+                except Exception as e:
+                    raise RuntimeError(
+                        _("Cage exited unexpectly.\n\n{0}").format(str(e))
+                    ) from e
 
                 await wait_for_state(
                     self.waydroid._controller.property_model,
@@ -630,13 +639,15 @@ class InstanceDetailPage(NavigationPage):
 
             parent_window = self.get_root()
 
-            settings_dialog = KeyMappingPreferenceDialog(
+            # 必须在 Python 侧保留强引用；否则 connect_weakly 绑定的方法会因为 self 被回收而失效
+            # （GTK 侧仍可能显示对话框，但 Python 回调已经断开）。
+            self._key_mapping_settings_dialog = KeyMappingPreferenceDialog(
                 title=_("Key Mapping Preferences"),
                 parent=parent_window,
                 config=self.config,
             )
 
-            settings_dialog.present()
+            self._key_mapping_settings_dialog.present()
 
         except Exception as e:
             logger.error(f"Failed to open key mapping preferences dialog: {e}")
